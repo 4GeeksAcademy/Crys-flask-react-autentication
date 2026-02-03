@@ -121,7 +121,7 @@ def token():
         return jsonify({"msg": "User not active"}), 403
 
     # Crea token. Identity = user.id (nunca incluir password ni datos sensibles)
-    access_token = create_access_token(identity=user.id)
+    access_token = create_access_token(identity=str(user.id))
     return jsonify({"token": access_token, "user_id": user.id}), 200
 
 
