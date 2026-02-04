@@ -17,7 +17,8 @@ import re
 from datetime import timedelta
 
 api = Blueprint('api', __name__)
-CORS(api)  # permitir llamadas desde el front en desarrollo
+CORS(api, resources={r"/*": {"origins": "*"}})
+  # permitir llamadas desde el front en desarrollo
 
 
 # ----------------------------

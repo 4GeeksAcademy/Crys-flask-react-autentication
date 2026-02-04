@@ -1,0 +1,3 @@
+body { margin: 0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+.container { max-width: 960px; margin-left: auto; margin-right: auto; padding: 1rem; }
+.navbar-brand { cursor: pointer; }
