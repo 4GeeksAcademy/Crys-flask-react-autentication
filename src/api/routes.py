@@ -17,33 +17,31 @@ import re
 from datetime import timedelta
 
 api = Blueprint('api', __name__)
-CORS(api, resources={r"/*": {"origins": "*"}})
-  # permitir llamadas desde el front en desarrollo
 
+# Dejamos CORS simple ya que app.py también lo gestiona. 
+# Esto evita conflictos de "Access-Control-Allow-Origin" duplicados.
+CORS(api)
 
 # ----------------------------
 # Helpers y validaciones
 # ----------------------------
 EMAIL_RE = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
-
 def _validate_email(email: str) -> bool:
-    """Validación básica de formato de email (suficiente para bootcamp)."""
+    """Validación de formato de email."""
     if not isinstance(email, str):
         return False
     return bool(EMAIL_RE.fullmatch(email.strip()))
 
-
 def _validate_password(password: str) -> bool:
-    """Validaciones básicas de password (mínimo recomendado)."""
+    """Validación: mínimo 6 caracteres para el hash de seguridad."""
     if not isinstance(password, str):
         return False
     pw = password.strip()
-    return 6 <= len(pw) <= 128  # mínimo 6, máximo 128 para que el hash encaje
-
+    return 6 <= len(pw) <= 128
 
 def _is_token_revoked(jti: str) -> bool:
-    """Consulta la blocklist para ver si un token fue revocado."""
+    """Consulta si el token está en la lista negra."""
     if not jti:
         return True
     return TokenBlocklist.query.filter_by(jti=jti).first() is not None
@@ -55,19 +53,11 @@ def _is_token_revoked(jti: str) -> bool:
 
 @api.route('/signup', methods=['POST'])
 def signup():
-    """
-    Registro de usuario.
-    Body esperado: { "email": "...", "password": "..." }
-    Respuestas:
-      - 201 creado con { id, email }
-      - 400 si falta/invalid input
-      - 409 si email ya existe
-    """
+    """Registro de usuario con hashing de password."""
     data = request.get_json(force=True, silent=True) or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
 
-    # Validaciones básicas en el borde
     if not email or not password:
         return jsonify({"msg": "Missing email or password"}), 400
     if not _validate_email(email):
@@ -75,7 +65,6 @@ def signup():
     if not _validate_password(password):
         return jsonify({"msg": "Password must be 6-128 chars"}), 400
 
-    # Evitar race condition: chequeo + intento de insert en transacción
     if User.query.filter_by(email=email).first():
         return jsonify({"msg": "User already exists"}), 409
 
@@ -86,7 +75,6 @@ def signup():
         db.session.add(user)
         db.session.commit()
     except IntegrityError:
-        # Caso muy raro por race condition: ya existe
         db.session.rollback()
         return jsonify({"msg": "User already exists"}), 409
 
@@ -95,33 +83,21 @@ def signup():
 
 @api.route('/token', methods=['POST'])
 def token():
-    """
-    Login: genera un access token JWT.
-    Body esperado: { "email": "...", "password": "..." }
-    Respuestas:
-      - 200 { token, user_id }
-      - 400 input inválido
-      - 401 credenciales inválidas
-    """
+    """Login: Genera el access token JWT."""
     data = request.get_json(force=True, silent=True) or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
 
     if not email or not password:
         return jsonify({"msg": "Missing email or password"}), 400
-    if not _validate_email(email):
-        return jsonify({"msg": "Invalid email format"}), 400
 
     user = User.query.filter_by(email=email).first()
-    # 401 si no existe o contraseña incorrecta
     if user is None or not user.check_password(password):
         return jsonify({"msg": "Bad credentials"}), 401
 
     if not user.is_active:
-        # Opcional: distinto código si usuario desactivado
         return jsonify({"msg": "User not active"}), 403
 
-    # Crea token. Identity = user.id (nunca incluir password ni datos sensibles)
     access_token = create_access_token(identity=str(user.id))
     return jsonify({"token": access_token, "user_id": user.id}), 200
 
@@ -129,13 +105,7 @@ def token():
 @api.route('/private', methods=['GET'])
 @jwt_required()
 def private():
-    """
-    Ruta protegida de ejemplo.
-    - Valida token JWT (firma + expiración)
-    - Chequea blocklist (token no revocado)
-    - Devuelve la info del usuario autenticado
-    """
-    # Recupera datos del token
+    """Ruta protegida: valida token y existencia del usuario."""
     jwt_data = get_jwt()
     jti = jwt_data.get("jti")
     if _is_token_revoked(jti):
@@ -152,17 +122,10 @@ def private():
 @api.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():
-    """
-    Logout server-side:
-    - Inserta el `jti` del token actual en TokenBlocklist para invalidarlo.
-    - Nota: el frontend también debe borrar sessionStorage.
-    """
+    """Invalida el token actual guardándolo en la blocklist."""
     jwt_data = get_jwt()
     jti = jwt_data.get("jti")
-    if not jti:
-        return jsonify({"msg": "Invalid token"}), 400
-
-    # Evitar duplicados
+    
     if TokenBlocklist.query.filter_by(jti=jti).first():
         return jsonify({"msg": "Token already revoked"}), 200
 
@@ -172,12 +135,6 @@ def logout():
     return jsonify({"msg": "Token revoked"}), 200
 
 
-# ----------------------------
-# Ejemplo simple: endpoint público de prueba
-# ----------------------------
-@api.route('/hello', methods=['GET', 'POST'])
+@api.route('/hello', methods=['GET'])
 def handle_hello():
-    response_body = {
-        "message": "Hello! I'm a message that came from the backend. Check /api/private for a protected example."
-    }
-    return jsonify(response_body), 200
+    return jsonify({"message": "Backend online y conectado."}), 200
