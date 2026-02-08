@@ -1,4 +1,4 @@
-// estado inicial y reducer (estudiante, comentado para aprender)
+// estado inicial y reducer 
 export const initialStore = () => {
   return {
     message: null,

@@ -1,37 +1,35 @@
+import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export const Navbar = () => {
-  const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
+  const token = sessionStorage.getItem("token");
 
   const handleLogout = () => {
-    // Backend logout opcional: si quieres llamar al endpoint /api/logout, hazlo aquí.
-    // Pero siempre borra token local y actualiza estado.
-    dispatch({ type: "logout" });
+    sessionStorage.removeItem("token");
     navigate("/login");
   };
 
-  const isLogged = !!store.token;
-
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav className="navbar navbar-magic mb-3">
       <div className="container">
-        <Link to="/" className="navbar-brand fw-bold">Auth App</Link>
-
-        <div className="d-flex gap-2">
-          {!isLogged && (
-            <>
-              <Link to="/signup"><button className="btn btn-outline-light btn-sm">Signup</button></Link>
-              <Link to="/login"><button className="btn btn-primary btn-sm">Login</button></Link>
-            </>
-          )}
-
-          {isLogged && (
-            <>
-              <Link to="/private"><button className="btn btn-success btn-sm">Private</button></Link>
-              <button onClick={handleLogout} className="btn btn-outline-warning btn-sm">Logout</button>
-            </>
+        <Link to="/" className="text-decoration-none">
+          <span className="navbar-brand mb-0 h1 text-gold">
+            <i className="fa-solid fa-bolt me-2"></i>AUTH Project
+          </span>
+        </Link>
+        <div className="ml-auto">
+          {!token ? (
+            <Link to="/login">
+              <button className="btn-logout-neon">Login</button>
+            </Link>
+          ) : (
+            <div className="d-flex align-items-center gap-2 gap-md-3">
+              <Link to="/private" className="nav-link-neon text-decoration-none small">Private Area</Link>
+              <button onClick={handleLogout} className="btn-logout-neon">
+                <i className="fa-solid fa-power-off"></i> Logout
+              </button>
+            </div>
           )}
         </div>
       </div>

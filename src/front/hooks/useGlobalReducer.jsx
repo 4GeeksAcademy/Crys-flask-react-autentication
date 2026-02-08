@@ -1,7 +1,7 @@
 import { useContext, useReducer, createContext } from "react";
 import storeReducer, { initialStore } from "../store";
 
-// Mantener nombre StoreContext para ser coherente con tu plantilla
+
 const StoreContext = createContext();
 
 export function StoreProvider({ children }) {

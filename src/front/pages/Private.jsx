@@ -9,7 +9,7 @@ export const Private = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const token = store.token || (typeof window !== "undefined" && sessionStorage.getItem("token"));
+  const token = store.token || sessionStorage.getItem("token");
 
   useEffect(() => {
     const run = async () => {
@@ -27,7 +27,7 @@ export const Private = () => {
           const data = await resp.json();
           setUserData(data);
         } else {
-          // token inválido o revocado
+          sessionStorage.removeItem("token");
           dispatch({ type: "logout" });
           navigate("/login");
         }
@@ -40,24 +40,23 @@ export const Private = () => {
     };
 
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token, navigate, dispatch]);
 
-  if (loading) return <div className="container mt-5">Loading...</div>;
+  if (loading) return <div className="magic-main-container"><div className="spinner-border text-gold"></div></div>;
 
   return (
-    <div className="container mt-5">
-      <h2>Private area</h2>
-      {userData ? (
-        <div className="card">
-          <div className="card-body">
-            <p><strong>ID:</strong> {userData.id}</p>
-            <p><strong>Email:</strong> {userData.email}</p>
+    <div className="magic-main-container text-center">
+      <div className="magic-card" style={{borderColor: 'var(--neon-blue)'}}>
+        <h2 className="magic-title" style={{color: 'var(--neon-blue)'}}>Private Area</h2>
+        {userData ? (
+          <div className="p-3 bg-black-50 rounded border border-secondary text-start">
+            <p className="mb-2"><strong className="text-blue">ID:</strong> <span className="text-light">{userData.id}</span></p>
+            <p className="mb-0"><strong className="text-blue">Email:</strong> <span className="text-light">{userData.email}</span></p>
           </div>
-        </div>
-      ) : (
-        <div className="alert alert-warning">No user info</div>
-      )}
+        ) : (
+          <div className="alert alert-warning">No user info</div>
+        )}
+      </div>
     </div>
   );
 };

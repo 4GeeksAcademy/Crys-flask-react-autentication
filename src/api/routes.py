@@ -18,38 +18,38 @@ from datetime import timedelta
 
 api = Blueprint('api', __name__)
 
-# Dejamos CORS simple ya que app.py también lo gestiona. 
+ 
 # Esto evita conflictos de "Access-Control-Allow-Origin" duplicados.
 CORS(api)
 
-# ----------------------------
+
 # Helpers y validaciones
-# ----------------------------
+
 EMAIL_RE = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
 def _validate_email(email: str) -> bool:
-    """Validación de formato de email."""
+    
     if not isinstance(email, str):
         return False
     return bool(EMAIL_RE.fullmatch(email.strip()))
 
 def _validate_password(password: str) -> bool:
-    """Validación: mínimo 6 caracteres para el hash de seguridad."""
+    
     if not isinstance(password, str):
         return False
     pw = password.strip()
     return 6 <= len(pw) <= 128
 
 def _is_token_revoked(jti: str) -> bool:
-    """Consulta si el token está en la lista negra."""
+    
     if not jti:
         return True
     return TokenBlocklist.query.filter_by(jti=jti).first() is not None
 
 
-# ----------------------------
+
 # Endpoints
-# ----------------------------
+
 
 @api.route('/signup', methods=['POST'])
 def signup():
@@ -83,7 +83,7 @@ def signup():
 
 @api.route('/token', methods=['POST'])
 def token():
-    """Login: Genera el access token JWT."""
+    
     data = request.get_json(force=True, silent=True) or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
@@ -122,7 +122,6 @@ def private():
 @api.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():
-    """Invalida el token actual guardándolo en la blocklist."""
     jwt_data = get_jwt()
     jti = jwt_data.get("jti")
     
